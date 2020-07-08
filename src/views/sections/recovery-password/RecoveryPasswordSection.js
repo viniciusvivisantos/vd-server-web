@@ -2,6 +2,8 @@ import React from "react";
 
 import { Component } from "react";
 
+import Utils from "utils/Utils.js";
+
 import axios from "axios";
 
 import {
@@ -23,7 +25,7 @@ export class SectionLogin extends Component {
     super()
     this.state = {
       username: '',
-      password: '',
+      email: '',
       modal: false,
       messageSuccess: ''
     }
@@ -44,8 +46,6 @@ export class SectionLogin extends Component {
       this.setState({
         modal: !this.state.modal
       })
-      if (window.sessionStorage.getItem("username"))
-        window.location.href = "/index"
     };
 
     let handleSetMessageSuccess = (msg) => {
@@ -53,20 +53,15 @@ export class SectionLogin extends Component {
         messageSuccess: msg
       })
     }
-    let handleSendLogin = async (e) => {
+    let handleSendRecovery = (e) => {
       e.preventDefault();
-      const { username, password } = this.state;
-      if (username && password) {
-        await axios.post(`${process.env.REACT_APP_BASE_URL}/v1/users/userAuthenticate`, { username: username, password: password })
-          .then(response => {
-            const { username, userEmail, userUniqueId } = response.data.records[0];
+      const { username, email } = this.state;
+      if (username && email) {
+        if (Utils.validateEmail(email)) {
+          axios.post(`${process.env.REACT_APP_BASE_URL}/v1/users/recoveryPassword`, { username: username, userEmail: email }).then(response => {
             handleToggleModal();
-            handleSetMessageSuccess(`Usuário e senha autenticados com sucesso.`);
-            window.sessionStorage.setItem("userUniqueId", userUniqueId);
-            window.sessionStorage.setItem("username", username);
-            window.sessionStorage.setItem("userEmail", userEmail);
-          })
-          .catch(error => {
+            handleSetMessageSuccess(`As informações para a alteração de senha foram enviadas ao seu email! Siga os passos para que não haja nenhum problema.`);
+          }).catch(error => {
             handleToggleModal();
             if (error.response.status) {
               const data = JSON.parse(JSON.stringify(error.response.data));
@@ -75,10 +70,15 @@ export class SectionLogin extends Component {
               handleSetMessageSuccess(`Houve um erro ao tentar realizar uma requisição na API. Por favor entre em contato com um administrador para que o problema seja resolvido!`);
             }
           })
+        } else {
+          handleToggleModal();
+          handleSetMessageSuccess(`Você precisa inserir um email válido!`);
+        }
       } else {
         handleToggleModal();
-        handleSetMessageSuccess(`Preencha usuário e senha para prosseguir!`);
+        handleSetMessageSuccess(`Preencha usuário e email para prosseguir!`);
       }
+
     }
     return (
       <>
@@ -100,16 +100,25 @@ export class SectionLogin extends Component {
                     {this.state.messageSuccess}
                   </div>
                   <div className="modal-footer">
-                    <Button className="btn-link" color="success" type="button" onClick={handleToggleModal}>
+                    <Button className="btn-link" color="danger" type="button" onClick={handleToggleModal}>
                       OK
                     </Button>
                   </div>
                 </Modal>
                 <Card className="card-register" style={{ backgroundImage: `url(${require("assets/img/login-wallpaper.jpg")})` }}>
-                  <h3 className="title mx-auto">Login</h3>
+                  <h3 className="title mx-auto">Recuperar Senha</h3>
                   {//<h5 className="subtitle mx-auto">Você deve usar os mesmos dados utilizados in-game.</h5>
                   }
-                  <Form className="register-form" onKeyPress={e => { if (e.key === "Enter") handleSendLogin(e) }}>
+                  <Form className="register-form" onKeyPress={e => { if (e.key === "Enter") handleSendRecovery(e) }}>
+                    <label>Email</label>
+                    <InputGroup className="form-group-no-border">
+                      <InputGroupAddon addonType="prepend">
+                        <InputGroupText>
+                          <i className="fa fa-envelope" />
+                        </InputGroupText>
+                      </InputGroupAddon>
+                      <Input onChange={e => handleChange(e)} placeholder="Email" type="email" name="email" />
+                    </InputGroup>
                     <label>Usuário</label>
                     <InputGroup className="form-group-no-border">
                       <InputGroupAddon addonType="prepend">
@@ -119,34 +128,16 @@ export class SectionLogin extends Component {
                       </InputGroupAddon>
                       <Input onChange={e => handleChange(e)} placeholder="Usuário" type="text" name="username" />
                     </InputGroup>
-                    <label>Senha</label>
-                    <InputGroup className="form-group-no-border">
-                      <InputGroupAddon addonType="prepend">
-                        <InputGroupText>
-                          <i className="nc-icon nc-key-25" />
-                        </InputGroupText>
-                      </InputGroupAddon>
-                      <Input onChange={e => handleChange(e)} placeholder="Senha" type="password" name="password" />
-                    </InputGroup>
                     <Button
                       block
                       className="btn-round"
                       color="success"
                       type="button"
-                      onClick={e => handleSendLogin(e)}
+                      onClick={e => handleSendRecovery(e)}
                     >
-                      Login
+                      Enviar
                   </Button>
                   </Form>
-                  <div className="forgot">
-                    <Button
-                      className="btn-link"
-                      color="success"
-                      href="/recoverypassword"
-                    >
-                      Esqueceu sua senha?
-                  </Button>
-                  </div>
                 </Card>
               </Col>
             </Row>
